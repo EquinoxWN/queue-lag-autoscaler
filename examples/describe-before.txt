@@ -1,0 +1,12 @@
+
+GROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                              HOST            CLIENT-ID
+orders-workers  orders          0          1000            4000            3000            consumer-orders-workers-1-0b6f2c1e-1d7a-4e8b-9a51-3f2c   /10.0.0.11      consumer-orders-workers-1
+orders-workers  orders          1          1200            4100            2900            consumer-orders-workers-1-0b6f2c1e-1d7a-4e8b-9a51-3f2c   /10.0.0.11      consumer-orders-workers-1
+orders-workers  orders          2          900             3900            3000            consumer-orders-workers-2-7c41d9aa-52f0-4f0e-8d2b-91e0   /10.0.0.12      consumer-orders-workers-2
+orders-workers  orders          3          1100            4000            2900            consumer-orders-workers-2-7c41d9aa-52f0-4f0e-8d2b-91e0   /10.0.0.12      consumer-orders-workers-2
+
+Consumer group 'emails' has no active members.
+
+GROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID
+emails          emails          0          500             500             0               -               -               -
+emails          emails          1          -               20              -               -               -               -

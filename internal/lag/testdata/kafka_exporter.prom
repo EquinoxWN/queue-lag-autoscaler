@@ -1,0 +1,18 @@
+# HELP kafka_consumergroup_current_offset Current Offset of a ConsumerGroup at Topic/Partition
+# TYPE kafka_consumergroup_current_offset gauge
+kafka_consumergroup_current_offset{consumergroup="orders-workers",partition="0",topic="orders"} 1000
+kafka_consumergroup_current_offset{consumergroup="orders-workers",partition="1",topic="orders"} 1200
+kafka_consumergroup_current_offset{consumergroup="emails",partition="0",topic="emails"} -1
+# HELP kafka_consumergroup_lag Current Approximate Lag of a ConsumerGroup at Topic/Partition
+# TYPE kafka_consumergroup_lag gauge
+kafka_consumergroup_lag{consumergroup="orders-workers",partition="0",topic="orders"} 3000
+kafka_consumergroup_lag{consumergroup="orders-workers",partition="1",topic="orders"} 2900
+# HELP kafka_topic_partition_current_offset Current Offset of a Broker at Topic/Partition
+# TYPE kafka_topic_partition_current_offset gauge
+kafka_topic_partition_current_offset{partition="0",topic="orders"} 4000
+kafka_topic_partition_current_offset{partition="1",topic="orders"} 4100
+kafka_topic_partition_current_offset{partition="0",topic="emails"} 2.5e+01
+kafka_topic_partition_current_offset{partition="0",topic="unconsumed"} 99
+# HELP go_goroutines Number of goroutines that currently exist.
+# TYPE go_goroutines gauge
+go_goroutines 12

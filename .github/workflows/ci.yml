@@ -1,0 +1,89 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Least privilege: the workflow can read the code and nothing else.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Every action is pinned to a full commit SHA.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.26.10"
+          cache-dependency-path: go.mod
+      - run: make ci
+      - name: Known-vulnerability audit
+        run: make audit
+      - name: Simulated bursty load (in-process broker)
+        run: |
+          set -o pipefail
+          if go run ./cmd/queue-lag-autoscaler demo | tee demo.log; then
+            echo "::notice title=lag-based demo::$(grep -E '^(lag-based|verify):' demo.log | tr '\n' ' ')"
+          else
+            echo "::error title=lag-based demo::$(grep -E '^(verify|error):' demo.log | tr '\n' ' ')"
+            exit 1
+          fi
+
+  # Offsets read from a real Kafka broker with kafka-consumer-groups.sh, then fed to `plan`.
+  kafka:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      kafka:
+        image: apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837
+        ports:
+          - 9092:9092
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.26.10"
+          cache-dependency-path: go.mod
+      - name: Produce, consume and snapshot offsets twice
+        env:
+          KAFKA: ${{ job.services.kafka.id }}
+        run: |
+          set -euo pipefail
+          k() { docker exec -i "$KAFKA" "/opt/kafka/bin/$1" --bootstrap-server localhost:9092 "${@:2}"; }
+          for i in $(seq 1 60); do k kafka-topics.sh --list >/dev/null 2>&1 && break; sleep 2; done
+          k kafka-topics.sh --create --topic ci-jobs --partitions 4 --replication-factor 1
+          seq 1 2000 | k kafka-console-producer.sh --topic ci-jobs
+          k kafka-console-consumer.sh --topic ci-jobs --group ci-workers --from-beginning --max-messages 500 --timeout-ms 30000 >/dev/null
+          t1=$(date +%s.%N); k kafka-consumer-groups.sh --describe --group ci-workers | tee before.txt
+          k kafka-console-consumer.sh --topic ci-jobs --group ci-workers --max-messages 300 --timeout-ms 30000 >/dev/null
+          sleep 5
+          t2=$(date +%s.%N); k kafka-consumer-groups.sh --describe --group ci-workers | tee after.txt
+          echo "ELAPSED=$(awk -v a="$t1" -v b="$t2" 'BEGIN { printf "%.3fs", b - a }')" >> "$GITHUB_ENV"
+      - name: Plan from the real snapshots
+        run: |
+          set -euo pipefail
+          go run ./cmd/queue-lag-autoscaler plan -config examples/ci-kafka.json \
+            -before before.txt -after after.txt -elapsed "$ELAPSED" | tee plan.json
+          want=$(awk '$1 == "ci-workers" && $6 ~ /^[0-9]+$/ { s += $6 } END { print s + 0 }' after.txt)
+          got=$(grep -o '"lag":[0-9]*' plan.json | cut -d: -f2)
+          rate=$(grep -o '"process_per_s":[0-9.e+-]*' plan.json | cut -d: -f2)
+          desired=$(grep -o '"desired":[0-9]*' plan.json | cut -d: -f2)
+          summary="lag=$got (kafka-consumer-groups.sh LAG sum $want) process_per_s=$rate desired=$desired elapsed=$ELAPSED"
+          if [ "$got" = "$want" ] && [ "$got" -gt 0 ] && awk -v r="$rate" 'BEGIN { exit !(r > 0) }' && [ "$desired" -ge 1 ]; then
+            echo "::notice title=real Kafka plan::$summary"
+          else
+            echo "::error title=real Kafka plan::$summary"
+            exit 1
+          fi
