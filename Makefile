@@ -21,7 +21,7 @@ plan:
 	go run ./cmd/queue-lag-autoscaler plan -config examples/config.json \
 		-before examples/describe-before.txt -after examples/describe-after.txt -elapsed 60s
 
-# Known vulnerabilities in called code (Go 1.26.10 as in CI); any finding outside the allowlist fails.
+# Known vulnerabilities in called code (Go 1.26.11 as in CI); any finding fails.
 audit:
 	bash scripts/vulncheck.sh
 

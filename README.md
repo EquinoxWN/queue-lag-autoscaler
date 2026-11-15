@@ -117,7 +117,7 @@ In M1 terms:
 
 ## Run it
 
-Prerequisites: Go 1.26 or newer (CI uses 1.26.10). No Docker, broker or cluster is needed locally.
+Prerequisites: Go 1.26 or newer (CI uses 1.26.11). No Docker, broker or cluster is needed locally.
 
 ```bash
 make setup   # go mod download (no third-party modules)
@@ -182,7 +182,7 @@ Headline results from the simulated run on this machine:
 | Check | Result |
 |---|---|
 | Demo verification | `short_decisions=0 final_lag_ok=true max_wait_within_bound=true` (bound 2 min 40 s = target + 2 ticks + startup) |
-| govulncheck (Go 1.26.10) | One finding, GO-2026-6859 (net/http, fixed in Go 1.26.11), allowlisted by ID in `scripts/vulncheck.sh` until CI moves to 1.26.11; any other finding fails |
+| govulncheck (Go 1.26.11) | No vulnerabilities found; any finding fails `scripts/vulncheck.sh` |
 
 Not run locally: the race detector (needs cgo) and the real Kafka job; both run in CI, which has
 not run yet for this repository. The kafka_exporter parser is tested against a fixture, not a

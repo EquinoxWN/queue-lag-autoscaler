@@ -4,7 +4,7 @@ Thanks for helping. This is a Go project; issues and pull requests are welcome.
 
 ## Set up and check your change
 
-Needs Go 1.26 or newer (CI uses 1.26.10). There are no third-party Go modules. Caches stay in
+Needs Go 1.26 or newer (CI uses 1.26.11). There are no third-party Go modules. Caches stay in
 git-ignored folders inside the repo.
 
 ```bash
